@@ -1,5 +1,8 @@
 name: Fans Run
 on:
+  push:
+    branches:
+      - dev
   workflow_dispatch:
   schedule:
     - cron: '30 2 * * *'
@@ -14,6 +17,16 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+    - uses: 'actions/cache@v3'
+      id: cache
+      with:
+        # CAUTION: Replace this hardcoded "python3.10" dirname with
+        # the dirname providing your desired Python interpreter.
+        path: ${{ env.pythonLocation }}/lib/python3.10/site-packages/*
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
