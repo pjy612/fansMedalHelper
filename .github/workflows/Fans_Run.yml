@@ -1,0 +1,24 @@
+name: Fans Run
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+    - cron: '30 6 * * *'
+    
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    - name: Build and publish
+      env:
+        USERS: ${{ secrets.USERS }}
+      run: |
+        python main.py
