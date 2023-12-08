@@ -1,0 +1,28 @@
+name: Delete old workflow runs
+on:
+  schedule:
+    - cron: '1 16 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Number of days.'
+        required: true
+        default: 7
+      keepCount:
+        description: 'Size of keep.'
+        required: true
+        default: 2
+    
+
+jobs:
+  del_runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete workflow runs
+        uses: GitRML/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.AUTH_PAT }}
+          repository: ${{ github.repository }}
+          retain_days: ${{ github.event.inputs.days || 7 }}
+          keep_minimum_runs: ${{ github.event.inputs.keepCount || 2 }}
+          
