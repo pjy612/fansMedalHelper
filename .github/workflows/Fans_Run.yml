@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 18 * * *'
-    
+    - cron: '0 2 * * *'
+    - cron: '0 10 * * *'    
 jobs:
   deploy:
     runs-on: ubuntu-latest
