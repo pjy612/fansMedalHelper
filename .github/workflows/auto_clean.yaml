@@ -1,0 +1,98 @@
+name: Delete old workflow runs
+on:
+  schedule:
+    - cron: '1 16 * * *'
+  workflow_dispatch:
+    
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete old workflow runs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 获取所有工作流运行记录（修复分词问题）
+          page=1
+          all_runs=()
+          while :; do
+            echo "Fetching page $page..."
+            response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100&page=$page")
+
+            # 检查响应有效性
+            if ! echo "$response" | jq -e '.workflow_runs' >/dev/null 2>&1; then
+              echo "Invalid JSON response. Exiting loop."
+              break
+            fi
+
+            # 使用 mapfile 正确存储 JSON 对象
+            mapfile -t runs < <(echo "$response" | jq -c '.workflow_runs[]?')
+            if [ ${#runs[@]} -eq 0 ]; then
+              echo "No more runs found. Exiting loop."
+              break
+            fi
+
+            all_runs+=("${runs[@]}")
+            ((page++))
+          done
+
+          echo "Total runs fetched: ${#all_runs[@]}"
+
+          # 处理 auto_clean.yaml 工作流
+          for run_json in "${all_runs[@]}"; do
+            run_id=$(echo "$run_json" | jq -r '.id')
+            workflow_path=$(echo "$run_json" | jq -r '.path // "unknown"')
+            status=$(echo "$run_json" | jq -r '.status')
+
+            if [[ "$workflow_path" == ".github/workflows/auto_clean.yaml" && "$status" == "completed" ]]; then
+              echo "Deleting auto_clean run: $run_id"
+              curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+            fi
+          done
+
+          # 处理其他工作流
+          declare -A successful_runs  # 使用关联数组记录各工作流的成功记录
+          for run_json in "${all_runs[@]}"; do
+            run_id=$(echo "$run_json" | jq -r '.id')
+            workflow_path=$(echo "$run_json" | jq -r '.path // "unknown"')
+            status=$(echo "$run_json" | jq -r '.status')
+            conclusion=$(echo "$run_json" | jq -r '.conclusion // "unknown"')
+
+            if [[ "$workflow_path" != ".github/workflows/auto_clean.yaml" ]]; then
+              # 删除手动取消的记录
+              if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
+                echo "Deleting not success run: $run_id"
+                curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+              fi
+
+              # 收集成功记录（按工作流分组）
+              if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+                if [[ -z "${successful_runs[$workflow_path]}" ]]; then
+                  successful_runs["$workflow_path"]="$run_id"
+                else
+                  successful_runs["$workflow_path"]+=" $run_id"
+                fi
+              fi
+            fi
+          done
+
+          # 清理各工作流的成功记录（保留最近6条）
+          for workflow in "${!successful_runs[@]}"; do
+            echo "Processing successful runs for: $workflow"
+            read -ra runs <<< "${successful_runs[$workflow]}"
+            if [ ${#runs[@]} -gt 6 ]; then
+              delete_ids=("${runs[@]:6}")
+              for run_id in "${delete_ids[@]}"; do
+                echo "Deleting old successful run: $run_id"
+                curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+              done
+            fi
+          done
+
+          echo "Cleanup completed!"
