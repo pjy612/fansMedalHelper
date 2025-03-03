@@ -192,7 +192,7 @@ class BiliApi:
             "access_key": self.u.access_key,
             "actionKey": "appkey",
             "appkey": Crypto.APPKEY,
-            "click_time": 1,
+            # "click_time": 1,
             "room_id": room_id,
             "anchor_id": up_id,
             "uid": up_id,
@@ -202,8 +202,9 @@ class BiliApi:
                 "Content-Type": "application/x-www-form-urlencoded",
             }
         ),
-        # for _ in range(3):
-        await self.__post(url, data=SingableDict(data).signed, headers=self.headers)
+        for _ in range(30):
+            await self.__post(url, data=SingableDict(data).signed, headers=self.headers)
+            await asyncio.sleep(self.u.config['LIKE_CD'] if not self.u.config['ASYNC'] else 2)
 
     async def shareRoom(self, room_id: int):
         """
