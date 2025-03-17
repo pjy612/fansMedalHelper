@@ -202,9 +202,9 @@ class BiliApi:
                 "Content-Type": "application/x-www-form-urlencoded",
             }
         ),
-        for _ in range(30):
-            await self.__post(url, data=SingableDict(data).signed, headers=self.headers)
-            await asyncio.sleep(self.u.config['LIKE_CD'] if not self.u.config['ASYNC'] else 2)
+        # for _ in range(30):
+        await self.__post(url, data=SingableDict(data).signed, headers=self.headers)
+        # await asyncio.sleep(self.u.config['LIKE_CD'] if not self.u.config['ASYNC'] else 2)
 
     async def shareRoom(self, room_id: int):
         """
