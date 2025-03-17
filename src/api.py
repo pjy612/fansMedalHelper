@@ -192,7 +192,7 @@ class BiliApi:
             "access_key": self.u.access_key,
             "actionKey": "appkey",
             "appkey": Crypto.APPKEY,
-            # "click_time": 1,
+            "click_time": 30,
             "room_id": room_id,
             "anchor_id": up_id,
             "uid": up_id,
