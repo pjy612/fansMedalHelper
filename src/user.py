@@ -192,10 +192,10 @@ class BiliUser:
                 self.log.log("INFO", f"共有 {len(self.medalsNeedDo)} 个牌子未满 1500 亲密度")
                 tasks.append(self.watchinglive())
                 tasks.append(self.sendDanmaku())
+                tasks.append(self.like_v3())
             else:
                 self.log.log("INFO", "所有牌子已满 1500 亲密度")
-            tasks.append(self.like_v3())
-            tasks.append(self.signInGroups())
+            # tasks.append(self.signInGroups())
             await asyncio.gather(*tasks)
 
     async def sendmsg(self):
