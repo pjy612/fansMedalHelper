@@ -1,7 +1,9 @@
 name: Delete old workflow runs
 on:
-  schedule:
-    - cron: '1 16 * * *'
+  workflow_run:
+    workflows: ["Fans Run"]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
